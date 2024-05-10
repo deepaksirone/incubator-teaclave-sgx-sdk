@@ -100,7 +100,7 @@ RustEnclave_Compile_Flags := $(SGX_COMMON_CFLAGS) $(ENCLAVE_CFLAGS) $(RustEnclav
 RustEnclave_Link_Flags := -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -l$(Service_Library_Name) -l$(Crypto_Library_Name) $(RustEnclave_Link_Libs) -Wl,--end-group \
-	-Wl,--version-script=enclave/Enclave.lds \
+	-Wl,--version-script=enclave/Enclave.lds -rdynamic \
 	$(ENCLAVE_LDFLAGS)
 
 RustEnclave_Name := enclave/enclave.so
