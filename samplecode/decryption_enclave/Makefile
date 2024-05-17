@@ -48,6 +48,19 @@ $(error Cannot set SGX_DEBUG and SGX_PRERELEASE at the same time!!)
 endif
 endif
 
+Pcl_Encryption_Tool := $(SGX_SDK)/bin/x64/sgx_encrypt
+PCL_KEY := ./key.bin
+PCL_KEY_SIZE := 16
+
+ifneq ($(SGX_MODE), HW)
+PCL_LIB_NAME := sgx_pclsim
+else  # ifneq ($(SGX_MODE), HW)
+PCL_LIB_NAME := sgx_pcl
+endif # ifneq ($(SGX_MODE), HW)
+
+PCL_LINK_FLAGS := -Wl,--whole-archive -l$(PCL_LIB_NAME) -Wl,--no-whole-archive
+
+
 ifeq ($(SGX_DEBUG), 1)
 	SGX_COMMON_CFLAGS += -O0 -g
 else
@@ -103,6 +116,7 @@ RustEnclave_Link_Flags := -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfi
 	$(ENCLAVE_LDFLAGS)
 
 RustEnclave_Name := enclave/enclave.so
+Encrypted_RustEnclave_Name := $(RustEnclave_Name).enc
 Signed_RustEnclave_Name := bin/enclave.signed.so
 
 .PHONY: all
@@ -138,12 +152,18 @@ enclave/Enclave_t.o: $(Enclave_EDL_Files)
 	@echo "CC   <=  $<"
 
 $(RustEnclave_Name): enclave enclave/Enclave_t.o
-	@$(CXX) enclave/Enclave_t.o -o $@ $(RustEnclave_Link_Flags)
+	$(CXX) enclave/Enclave_t.o -o $@ $(RustEnclave_Link_Flags) $(PCL_LINK_FLAGS)
 	@echo "LINK =>  $@"
 
-$(Signed_RustEnclave_Name): $(RustEnclave_Name)
+$(Signed_RustEnclave_Name): $(RustEnclave_Name) $(Pcl_Encryption_Tool) $(PCL_KEY)
+	@echo -n "Encrypt key: "
+	@hexdump -v -e '/1 "%02X"' $(PCL_KEY)
+	@echo ""
+	$(Pcl_Encryption_Tool) -i $(RustEnclave_Name) -o $(Encrypted_RustEnclave_Name) -k $(PCL_KEY) $(Encryption_Tool_Flags)
+	@echo "Encrypted => $(Encrypted_RustEnclave_Name)"
+
 	mkdir -p bin
-	@$(SGX_ENCLAVE_SIGNER) sign -key enclave/Enclave_private.pem -enclave $(RustEnclave_Name) -out $@ -config enclave/Enclave.config.xml
+	@$(SGX_ENCLAVE_SIGNER) sign -key enclave/Enclave_private.pem -enclave $(Encrypted_RustEnclave_Name) -out $@ -config enclave/Enclave.config.xml
 	@echo "SIGN =>  $@"
 
 .PHONY: enclave

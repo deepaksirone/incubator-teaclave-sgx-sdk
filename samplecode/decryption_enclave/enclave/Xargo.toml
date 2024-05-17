@@ -61,9 +61,9 @@ stage = 4
 path = "../../../sgx_tprotected_fs"
 stage = 4
 
-[dependencies.std]
-path = "../../../xargo/sgx_tstd"
-stage = 5
+#[dependencies.std]
+#path = "../../../xargo/sgx_tstd"
+#stage = 5
 
 [dependencies.sgx_no_tstd]
 path = "../../../sgx_no_tstd"

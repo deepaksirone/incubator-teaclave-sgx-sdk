@@ -24,9 +24,9 @@ sgx_rand = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 # default features are "mesalock_sgx" + "fallback" as
 # rusty-machine = { git = "https://github.com/mesalock-linux/rusty-machine-sgx" }
 #rusty-machine = { git = "https://github.com/mesalock-linux/rusty-machine-sgx", default-features = false, features = ["mesalock_sgx", "fallback"] }
-serde         = { git = "https://github.com/mesalock-linux/serde-sgx" }
-serde_json    = { git = "https://github.com/mesalock-linux/serde-json-sgx" }
-bls12_381_plus = {git = "https://github.com/deepaksirone/bls12_381_plus", branch = "sgx"}
+#serde         = { git = "https://github.com/mesalock-linux/serde-sgx" }
+#serde_json    = { git = "https://github.com/mesalock-linux/serde-json-sgx" }
+#bls12_381_plus = {git = "https://github.com/deepaksirone/bls12_381_plus", branch = "sgx"}
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_align_struct_attribute = { path = "../../../sgx_align_struct_attribute" }

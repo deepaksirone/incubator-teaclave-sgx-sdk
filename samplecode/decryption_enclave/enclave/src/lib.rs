@@ -28,17 +28,30 @@ extern crate sgx_tstd as std;
 
 use sgx_types::*;
 
-extern crate sgx_rand as rand;
-extern crate serde;
-extern crate serde_json;
+//extern crate sgx_rand as rand;
+//extern crate serde;
+//extern crate serde_json;
+
+#[link_name = "sgx_pcl"]
+extern "C" {
+    pub fn pcl_entry_bellerophon(elf_base: *const c_void, key: *const u8);
+}
+
+//#[link_name = "enclave_hello"]
+//extern "C" {
+//    pub fn say_something(some_string: *const u8, some_len: usize) -> sgx_status_t;
+//}
 
 // TODO: Take some policy as a parameter
 #[no_mangle]
+#[link_section = ".nipx"]
 pub extern "C"
-fn decryption_stub() -> sgx_status_t {
-
-    let v = 10;
-    
+fn decrypt_enclave() -> sgx_status_t {
+    let key: &[u8] = &[0xa; 16];
+    let elf_base = std::enclave::get_enclave_base();
+    unsafe {
+        pcl_entry_bellerophon(elf_base as *const c_void, key.as_ptr() as *const u8);
+    }
     sgx_status_t::SGX_SUCCESS 
 }
 
