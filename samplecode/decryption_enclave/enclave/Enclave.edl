@@ -24,6 +24,6 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public sgx_status_t sample_main();
-	public sgx_status_t decrypt_enclave();
+	//public sgx_status_t decrypt_enclave();
     };
 };

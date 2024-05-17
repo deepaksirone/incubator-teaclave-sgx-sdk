@@ -24,7 +24,7 @@ static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
     fn sample_main (eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
-    fn decrypt_enclave (eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
+    //fn decrypt_enclave (eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -57,7 +57,7 @@ fn main() {
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
     let result = unsafe {
-        decrypt_enclave(enclave.geteid(),
+        sample_main(enclave.geteid(),
                     &mut retval)
     };
 
