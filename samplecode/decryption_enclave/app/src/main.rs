@@ -20,6 +20,8 @@ extern crate sgx_urts;
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
+pub mod bellerophon;
+
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {

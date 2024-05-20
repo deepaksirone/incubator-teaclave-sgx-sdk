@@ -26,4 +26,8 @@ enclave {
         public sgx_status_t sample_main();
 	//public sgx_status_t decrypt_enclave();
     };
+
+    untrusted {
+	sgx_status_t hello_from_pcl();
+    };
 };

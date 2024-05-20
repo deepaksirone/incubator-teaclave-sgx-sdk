@@ -151,8 +151,16 @@ enclave/Enclave_t.o: $(Enclave_EDL_Files)
 	@$(CC) $(RustEnclave_Compile_Flags) -c enclave/Enclave_t.c -o $@
 	@echo "CC   <=  $<"
 
-$(RustEnclave_Name): enclave enclave/Enclave_t.o
-	$(CXX) enclave/Enclave_t.o -o $@ $(RustEnclave_Link_Flags) $(PCL_LINK_FLAGS)
+enclave/bellerophon.o: enclave/bellerophon/bellerophon.cpp
+	@$(CXX) $(RustEnclave_Compile_Flags) -c enclave/bellerophon/bellerophon.cpp -o $@
+	$(OBJCOPY) $@ --rename-section .text=.nipx
+	$(OBJCOPY) $@ --rename-section .data=.nipx
+	$(OBJCOPY) $@ --rename-section .rodata=.niprod
+	@echo "CXX  <=  $<"
+
+
+$(RustEnclave_Name): enclave enclave/Enclave_t.o enclave/bellerophon.o
+	$(CXX) enclave/Enclave_t.o enclave/bellerophon.o -o $@ $(RustEnclave_Link_Flags) $(PCL_LINK_FLAGS)
 	@echo "LINK =>  $@"
 
 $(Signed_RustEnclave_Name): $(RustEnclave_Name) $(Pcl_Encryption_Tool) $(PCL_KEY)
@@ -173,6 +181,6 @@ enclave:
 
 .PHONY: clean
 clean:
-	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/*_t.* app/*_u.* lib/*.a
+	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/*.o enclave/*.enc enclave/*_t.* app/*_u.* lib/*.a
 	@cd enclave && cargo clean && rm -f Cargo.lock
 	@cd app && cargo clean && rm -f Cargo.lock
