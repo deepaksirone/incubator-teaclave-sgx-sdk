@@ -28,27 +28,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#ifndef _CPDEF_H_
+#define _CPDEF_H_
 
+typedef enum _requesttype
+{
+	TYPE_1 = 100,
+	TYPE_2,
+	TYPE_3
+}REQTYPE;
 
-#include "datatypes.h"
-#include "sgx_eid.h"
-#include "sgx_trts.h"
-#include <map>
-#include "dh_session_protocol.h"
+typedef struct _cprequestData
+{
+	REQTYPE type;
+	size_t len;
+	int    sockfd;
+	unsigned char content[1];
+}CPRequestData;
 
-#ifndef LOCALATTESTATION_H_
-#define LOCALATTESTATION_H_
+class CPRequestInt
+{
+	public:
+		CPRequestInt(){}
+		virtual ~CPRequestInt(){}
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t SGXAPI create_session(dh_session_t *p_session_info);
-uint32_t SGXAPI send_request_receive_response(dh_session_t *p_session_info, char *inp_buff, size_t inp_buff_len, size_t max_out_buff_size, char **out_buff, size_t* out_buff_len);
-uint32_t SGXAPI close_session(dh_session_t *p_session_info);
-
-#ifdef __cplusplus
-}
-#endif
+	public:
+		void virtual execute() = 0;
+};
 
 #endif

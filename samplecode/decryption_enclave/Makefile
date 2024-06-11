@@ -58,7 +58,7 @@ else  # ifneq ($(SGX_MODE), HW)
 PCL_LIB_NAME := sgx_pcl
 endif # ifneq ($(SGX_MODE), HW)
 
-PCL_LINK_FLAGS := -Wl,--whole-archive -l$(PCL_LIB_NAME) -Wl,--no-whole-archive
+#PCL_LINK_FLAGS := -Wl,--whole-archive -l$(PCL_LIB_NAME) -Wl,--no-whole-archive
 
 
 ifeq ($(SGX_DEBUG), 1)
@@ -68,6 +68,7 @@ else
 endif
 
 SGX_COMMON_CFLAGS += -fstack-protector
+SGX_COMMON_CXXFLAGS := $(SGX_COMMON_CFLAGS) -std=c++11
 
 ######## CUSTOM Settings ########
 
@@ -117,7 +118,41 @@ RustEnclave_Link_Flags := -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfi
 
 RustEnclave_Name := enclave/enclave.so
 Encrypted_RustEnclave_Name := $(RustEnclave_Name).enc
+Encryption_Tool_Flags := -d -bellerophon
 Signed_RustEnclave_Name := bin/enclave.signed.so
+
+#TODO: Add enclave/bellerophon/EnclaveMessageExchange.cpp enclave/bellerophon/Utility_E1.cpp
+RustEnclave_Bellerophon_Files := enclave/bellerophon/bellerophon.cpp 
+Enclave_Include_Paths := -Ienclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -IInclude
+
+Enclave_C_Flags := -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths) -DPB_ENABLE_SGX
+Enclave_Cpp_Flags := $(Enclave_C_Flags) -nostdinc++
+
+# Enable the security flags
+Enclave_Security_Link_Flags := -Wl,-z,relro,-z,now,-z,noexecstack
+	
+# PCL source files
+PCL_ASM_FILES       := enclave/bellerophon/crypto/pcl_vpaes-x86_64.s \
+                       enclave/bellerophon/crypto/pcl_ghash-x86_64.s
+
+PCL_CPP_FILES       := enclave/bellerophon/crypto/pcl_crypto.cpp \
+		       enclave/bellerophon/crypto/pcl_mem.cpp
+
+PCL_C_FILES        := enclave/bellerophon/crypto/pcl_sha256.c    \
+                      enclave/bellerophon/crypto/pcl_gcm128.c
+
+# object files
+PCL_CPP_OBJECTS                 := $(PCL_CPP_FILES:%.cpp=%.o)
+PCL_C_OBJECTS                   := $(PCL_C_FILES:%.c=%.o)
+PCL_ASM_OBJECTS                 := $(PCL_ASM_FILES:%.s=%.o)
+PCL_INCLUDE_PATH		:= -I/usr/include \
+				   -I/usr/include/x86_64-linux-gnu \
+				   -I./enclave/bellerophon \
+				   -I./enclave/bellerophon/crypto
+
+RustEnclave_Bellerophon_Objects := $(RustEnclave_Bellerophon_Files:.cpp=.o)
+
+RustEnclave_Bellerophon_Objects := $(RustEnclave_Bellerophon_Objects) $(PCL_CPP_OBJECTS) $(PCL_C_OBJECTS) $(PCL_ASM_OBJECTS)
 
 .PHONY: all
 all: $(App_Name) $(Signed_RustEnclave_Name)
@@ -140,7 +175,7 @@ $(App_Enclave_u_Object): app/Enclave_u.o
 	cp $(App_Enclave_u_Object) ./lib
 
 $(App_Name): $(App_Enclave_u_Object)
-	@cd app && SGX_SDK=$(SGX_SDK) cargo build $(App_Rust_Flags)
+	@cd app && SGX_SDK=$(SGX_SDK) SGX_MODE=$(SGX_MODE) cargo build $(App_Rust_Flags)
 	@echo "Cargo  =>  $@"
 	mkdir -p bin
 	cp $(App_Rust_Path)/app ./bin
@@ -149,18 +184,45 @@ $(App_Name): $(App_Enclave_u_Object)
 
 enclave/Enclave_t.o: $(Enclave_EDL_Files)
 	@$(CC) $(RustEnclave_Compile_Flags) -c enclave/Enclave_t.c -o $@
+	@echo "CC <= $<"
+
+enclave/bellerophon/bellerophon.o: enclave/bellerophon/bellerophon.cpp enclave/Enclave_t.h
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(RustEnclave_Compile_Flags) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX <= $<"
+
+enclave/bellerophon/EnclaveMessageExchange.o: enclave/bellerophon/EnclaveMessageExchange.cpp enclave/Enclave_t.h
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(RustEnclave_Compile_Flags)  $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX <= $<"
+
+enclave/bellerophon/Utility_E1.o: enclave/bellerophon/Utility_E1.cpp
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(RustEnclave_Compile_Flags)  $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX <= $<"
+
+enclave/bellerophon/crypto/%.o: enclave/bellerophon/crypto/%.s
+	@$(CC) $(SGX_COMMON_CFLAGS) $(RustEnclave_Compile_Flags)  $(PCL_INCLUDE_PATH) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-enclave/bellerophon.o: enclave/bellerophon/bellerophon.cpp
-	@$(CXX) $(RustEnclave_Compile_Flags) -c enclave/bellerophon/bellerophon.cpp -o $@
-	$(OBJCOPY) $@ --rename-section .text=.nipx
-	$(OBJCOPY) $@ --rename-section .data=.nipx
-	$(OBJCOPY) $@ --rename-section .rodata=.niprod
-	@echo "CXX  <=  $<"
+enclave/bellerophon/crypto/%.o: enclave/bellerophon/crypto/%.c
+	@$(CC) $(SGX_COMMON_CFLAGS) $(RustEnclave_Compile_Flags)  $(PCL_INCLUDE_PATH) $(Enclave_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+enclave/bellerophon/crypto/%.o: enclave/bellerophon/crypto/%.cpp
+	@$(CC) $(SGX_COMMON_CXXFLAGS) $(RustEnclave_Compile_Flags)  $(PCL_INCLUDE_PATH) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+$(RustEnclave_Bellerophon_Objects): enclave/Enclave_t.h 
 
 
-$(RustEnclave_Name): enclave enclave/Enclave_t.o enclave/bellerophon.o
-	$(CXX) enclave/Enclave_t.o enclave/bellerophon.o -o $@ $(RustEnclave_Link_Flags) $(PCL_LINK_FLAGS)
+#enclave/bellerophon.o: enclave/bellerophon/bellerophon.cpp
+#	@$(CXX) $(RustEnclave_Compile_Flags) -c enclave/bellerophon/bellerophon.cpp -o $@
+#	$(OBJCOPY) $@ --rename-section .text=.nipx
+#	$(OBJCOPY) $@ --rename-section .data=.nipx
+#	$(OBJCOPY) $@ --rename-section .rodata=.niprod
+#	@echo "CXX  <=  $<"
+
+
+$(RustEnclave_Name): enclave enclave/Enclave_t.o $(RustEnclave_Bellerophon_Objects)
+	$(CXX) enclave/Enclave_t.o $(RustEnclave_Bellerophon_Objects) -o $@ $(RustEnclave_Link_Flags) #$(PCL_LINK_FLAGS)
 	@echo "LINK =>  $@"
 
 $(Signed_RustEnclave_Name): $(RustEnclave_Name) $(Pcl_Encryption_Tool) $(PCL_KEY)
@@ -181,6 +243,6 @@ enclave:
 
 .PHONY: clean
 clean:
-	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/*.o enclave/*.enc enclave/*_t.* app/*_u.* lib/*.a
+	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/bellerophon/*.o enclave/bellerophon/crypto/*.o enclave/*.o enclave/*.enc enclave/*_t.* app/*_u.* lib/*.a
 	@cd enclave && cargo clean && rm -f Cargo.lock
 	@cd app && cargo clean && rm -f Cargo.lock

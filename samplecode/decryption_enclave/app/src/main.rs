@@ -26,7 +26,21 @@ static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
     fn sample_main (eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
+    fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
+                     some_string: *const u8, len: usize) -> sgx_status_t;
+
     //fn decrypt_enclave (eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
+}
+
+extern "C" {
+    fn decrypt_enclave (eid: sgx_enclave_id_t, retval: *mut sgx_status_t, decrypt: int64_t) -> sgx_status_t;
+}
+
+#[no_mangle]
+extern "C" fn ocall_print_string(ptr: *const c_char) { 
+    let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
+    let s = String::from_utf8_lossy(cstr.to_bytes()).to_string();
+    println!("{}", s);
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -58,7 +72,24 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
-    let result = unsafe {
+  
+    let mut result = unsafe {
+        decrypt_enclave(enclave.geteid(), &mut retval, 1)
+    };
+
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            println!("[+] Decryption Succeeded");
+
+        },
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        }
+    }
+
+
+    result = unsafe {
         sample_main(enclave.geteid(),
                     &mut retval)
     };
@@ -70,6 +101,25 @@ fn main() {
             return;
         }
     }
+
+    let input_string = String::from("This is a normal world string passed into Enclave!\n");
+
+    result = unsafe {
+        say_something(enclave.geteid(),
+                      &mut retval,
+                      input_string.as_ptr() as * const u8,
+                      input_string.len())
+    };
+
+    match result {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        }
+    }
+
+
 
     println!("[+] say_something success...");
 

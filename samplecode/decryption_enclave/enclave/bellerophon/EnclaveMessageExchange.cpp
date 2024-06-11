@@ -33,6 +33,7 @@
 #include "sgx_trts.h"
 #include "sgx_utils.h"
 #include "EnclaveMessageExchange.h"
+//#include "DhSessionEnclave_t.h"
 #include "sgx_eid.h"
 #include "error_codes.h"
 #include "sgx_ecp_types.h"
@@ -41,7 +42,7 @@
 #include "dh_session_protocol.h"
 #include "sgx_dh.h"
 #include "sgx_tcrypto.h"
-#include "../EnclaveInitiator/EnclaveInitiator_t.h"
+#include "Enclave_t.h"
 //#include "LocalAttestationCode_t.h"
 
 #ifdef __cplusplus

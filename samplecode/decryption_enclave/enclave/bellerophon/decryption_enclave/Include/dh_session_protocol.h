@@ -29,26 +29,40 @@
  *
  */
 
+#ifndef _DH_SESSION_PROROCOL_H
+#define _DH_SESSION_PROROCOL_H
 
-#include "datatypes.h"
-#include "sgx_eid.h"
-#include "sgx_trts.h"
-#include <map>
-#include "dh_session_protocol.h"
+#include "sgx_ecp_types.h"
+#include "sgx_key.h"
+#include "sgx_report.h"
+#include "sgx_attributes.h"
 
-#ifndef LOCALATTESTATION_H_
-#define LOCALATTESTATION_H_
+#define NONCE_SIZE         16
+#define MAC_SIZE           16
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define MSG_BUF_LEN        sizeof(ec_pub_t)*2
+#define MSG_HASH_SZ        32
 
-uint32_t SGXAPI create_session(dh_session_t *p_session_info);
-uint32_t SGXAPI send_request_receive_response(dh_session_t *p_session_info, char *inp_buff, size_t inp_buff_len, size_t max_out_buff_size, char **out_buff, size_t* out_buff_len);
-uint32_t SGXAPI close_session(dh_session_t *p_session_info);
 
-#ifdef __cplusplus
-}
-#endif
+//Session information structure
+typedef struct _la_dh_session_t
+{
+    uint32_t  session_id; //Identifies the current session
+    uint32_t  status; //Indicates session is in progress, active or closed
+    union
+    {
+        struct
+        {
+			sgx_dh_session_t dh_session;
+        }in_progress;
+
+        struct
+        {
+            sgx_key_128bit_t AEK; //Session Key
+            uint32_t counter; //Used to store Message Sequence Number
+        }active;
+    };
+} dh_session_t;
+
 
 #endif

@@ -26,7 +26,18 @@ extern crate sgx_types;
 #[macro_use]
 extern crate sgx_tstd as std;
 
+//use sgx_types::*;
+//#[macro_use]
+//extern crate sgx_tstd as std;
+
 use sgx_types::*;
+use std::string::String;
+use std::vec::Vec;
+use std::io::{self, Write};
+use std::slice;
+
+#[link_section = ".encrypt.data"]
+static HELLO: [u8; 23] = *b"this is a hello string\0";
 
 //extern crate sgx_rand as rand;
 //extern crate serde;
@@ -43,19 +54,55 @@ use sgx_types::*;
 //}
 
 // TODO: Take some policy as a parameter
-//#[no_mangle]
-//#[link_section = ".nipx"]
-//pub extern "C"
-//fn decrypt_enclave() -> sgx_status_t {
-//    let key: &[u8] = &[0xa; 16];
-//    let elf_base = std::enclave::get_enclave_base();
-//    unsafe {
-//        pcl_entry_bellerophon(elf_base as *const c_void, key.as_ptr() as *const u8);
-//    }
-//    sgx_status_t::SGX_SUCCESS 
-//}
+/*#[no_mangle]
+#[link_section = ".decrypt_stub"]
+pub extern "C"
+fn decrypt_enclave() -> sgx_status_t {
+    let key: &[u8] = &[0xa; 16];
+    //let elf_base = std::enclave::get_enclave_base();
+    //unsafe {
+    //    pcl_entry_bellerophon(elf_base as *const c_void, key.as_ptr() as *const u8);
+    //}
+    sgx_status_t::SGX_SUCCESS 
+}
+*/
+#[no_mangle]
+#[link_section = ".encrypt.text"]
+pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_status_t {
+
+    let str_slice = unsafe { slice::from_raw_parts(some_string, some_len) };
+    let _ = io::stdout().write(str_slice);
+
+    // A sample &'static string
+    let rust_raw_string = "This is a in-Enclave ";
+    let hello_s = HELLO;
+    // An array
+    let word:[u8;4] = [82, 117, 115, 116];
+    // An vector
+    let word_vec:Vec<u8> = vec![32, 115, 116, 114, 105, 110, 103, 33];
+
+    // Construct a string from &'static string
+    let mut hello_string = String::from(rust_raw_string);
+
+    // Iterate on word array
+    for c in word.iter() {
+        hello_string.push(*c as char);
+    }
+
+    // Rust style convertion
+    hello_string += String::from_utf8(word_vec).expect("Invalid UTF-8")
+                                               .as_str();
+
+    // Ocall to normal world for output
+    println!("{}", &hello_string);
+    println!("{:?}", &hello_s);
+
+    sgx_status_t::SGX_SUCCESS
+}
+
 
 #[no_mangle]
+#[link_section = ".encrypt.text"]
 pub extern "C"
 fn sample_main() -> sgx_status_t {
 

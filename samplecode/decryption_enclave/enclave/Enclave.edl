@@ -24,10 +24,12 @@ enclave {
     trusted {
         /* define ECALLs here. */
         public sgx_status_t sample_main();
-	//public sgx_status_t decrypt_enclave();
+	public sgx_status_t say_something([in, size=len] const uint8_t* some_string, size_t len);
+	public int decrypt_enclave(int decrypt);
     };
 
     untrusted {
+        void ocall_print_string([in, string] const char *str);
 	sgx_status_t hello_from_pcl();
     };
 };

@@ -30,25 +30,15 @@
  */
 
 
-#include "datatypes.h"
-#include "sgx_eid.h"
-#include "sgx_trts.h"
-#include <map>
-#include "dh_session_protocol.h"
+enclave {
+    include "sgx_eid.h"
+    include "datatypes.h"
+    include "../Include/dh_session_protocol.h"
+    trusted{
+            public uint32_t session_request([out] sgx_dh_msg1_t *dh_msg1, [out] uint32_t *session_id);
+            public uint32_t exchange_report([in] sgx_dh_msg2_t *dh_msg2, [out] sgx_dh_msg3_t *dh_msg3, uint32_t session_id);
+            public uint32_t generate_response([in, size = req_message_size] secure_message_t* req_message, size_t req_message_size, size_t max_payload_size, [out, size=resp_message_size] secure_message_t* resp_message, size_t resp_message_size, uint32_t session_id);
+            public uint32_t end_session(uint32_t session_id);
+    };
 
-#ifndef LOCALATTESTATION_H_
-#define LOCALATTESTATION_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t SGXAPI create_session(dh_session_t *p_session_info);
-uint32_t SGXAPI send_request_receive_response(dh_session_t *p_session_info, char *inp_buff, size_t inp_buff_len, size_t max_out_buff_size, char **out_buff, size_t* out_buff_len);
-uint32_t SGXAPI close_session(dh_session_t *p_session_info);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+};

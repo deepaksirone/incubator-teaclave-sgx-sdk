@@ -29,26 +29,27 @@
  *
  */
 
+#ifndef ERROR_CODES_H_
+#define ERROR_CODES_H_
 
-#include "datatypes.h"
-#include "sgx_eid.h"
-#include "sgx_trts.h"
-#include <map>
-#include "dh_session_protocol.h"
+typedef uint32_t ATTESTATION_STATUS;
 
-#ifndef LOCALATTESTATION_H_
-#define LOCALATTESTATION_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t SGXAPI create_session(dh_session_t *p_session_info);
-uint32_t SGXAPI send_request_receive_response(dh_session_t *p_session_info, char *inp_buff, size_t inp_buff_len, size_t max_out_buff_size, char **out_buff, size_t* out_buff_len);
-uint32_t SGXAPI close_session(dh_session_t *p_session_info);
-
-#ifdef __cplusplus
-}
-#endif
-
+#define SUCCESS                          0x00
+#define INVALID_PARAMETER                0xE1
+#define VALID_SESSION                    0xE2
+#define INVALID_SESSION                  0xE3
+#define ATTESTATION_ERROR                0xE4
+#define ATTESTATION_SE_ERROR             0xE5
+#define IPP_ERROR                        0xE6
+#define NO_AVAILABLE_SESSION_ERROR       0xE7
+#define MALLOC_ERROR                     0xE8
+#define ERROR_TAG_MISMATCH               0xE9
+#define OUT_BUFFER_LENGTH_ERROR          0xEA
+#define INVALID_REQUEST_TYPE_ERROR       0xEB
+#define INVALID_PARAMETER_ERROR          0xEC
+#define ENCLAVE_TRUST_ERROR              0xED
+#define ENCRYPT_DECRYPT_ERROR            0xEE
+#define DUPLICATE_SESSION                0xEF
+#define ERROR_OUT_OF_MEMORY              0xF0
+#define ERROR_UNEXPECTED		 0xF1
 #endif
